@@ -21,3 +21,12 @@ export function galleryHasLogo(presentation: GalleryPresentation): boolean {
 	if (presentation.logoMode === 'upload') return Boolean(presentation.logoAssetId)
 	return Boolean(presentation.instanceLogoAssetId)
 }
+
+/**
+ * Query for the public hero asset; a full-screen cover shows the whole photo, so it must not arrive pre-cropped to a banner.
+ *
+ * @param presentation Gallery presentation settings.
+ */
+export function publicHeroQuery(presentation: Pick<GalleryPresentation, 'heroFileId' | 'openerStyle'>): string {
+	return `?v=${presentation.heroFileId}${presentation.openerStyle === 'fullscreen' ? '&x=2400&y=2400&mode=fit' : ''}`
+}

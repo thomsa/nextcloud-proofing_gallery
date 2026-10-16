@@ -266,7 +266,7 @@ final class PublicGalleryController extends ResolvedPublicShareController {
 	#[PublicPage]
 	#[NoCSRFRequired]
 	#[FrontpageRoute(verb: 'GET', url: '/public/{token}/asset/{kind}')]
-	public function asset(string $kind, int $x = 1800, int $y = 1000): DataDisplayResponse {
+	public function asset(string $kind, int $x = 1800, int $y = 1000, string $mode = 'cover'): DataDisplayResponse {
 		if (!in_array($kind, ['logo', 'hero'], true)) {
 			return new DataDisplayResponse('', Http::STATUS_NOT_FOUND);
 		}
@@ -299,7 +299,7 @@ final class PublicGalleryController extends ResolvedPublicShareController {
 			$file = $gallery->getSourceType() === 'collection'
 				? $this->collections->resolveMedia($gallery, $fileId)
 				: $this->folders->resolveMedia($gallery->getOwnerUid(), $gallery->getFolderId(), $fileId);
-			if (str_starts_with($file->getMimeType(), 'image/')) return $this->previewResponse($file, $x, $y, false);
+			if (str_starts_with($file->getMimeType(), 'image/')) return $this->previewResponse($file, $x, $y, false, $mode);
 		} catch (\OCA\ProofingGallery\Exception\FolderAccessException|\OCP\Files\NotFoundException) {
 		}
 		return new DataDisplayResponse('', Http::STATUS_NOT_FOUND);
