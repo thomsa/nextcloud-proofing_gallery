@@ -7,6 +7,11 @@
   saved per reviewer, and a floating bar shows progress, rules and due date with
   one **Send for review** action that needs no named draft
 
+- add a per-gallery **Browsing** setting that offers continuous scrolling as an
+  alternative to numbered pages for grid, masonry and list layouts; the
+  lightbox keeps loading ahead, photo links still open from the first item, and
+  review state follows the visible part of long galleries
+
 - keep square image corners on public tiles when Nextcloud or a server theme
   rounds buttons
 
