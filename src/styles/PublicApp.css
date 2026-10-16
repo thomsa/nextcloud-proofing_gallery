@@ -733,6 +733,10 @@
 	text-align: center;
 }
 
+.public-gallery__more span {
+	color: var(--gallery-muted);
+}
+
 .public-gallery__footer {
 	display: flex;
 	width: auto;

@@ -50,6 +50,8 @@ export interface GalleryPresentation extends GalleryAppearance {
 	motionPreset: 'off' | 'subtle' | 'expressive'
 	lightboxFilmstripPlacement: 'auto' | 'side' | 'bottom' | 'hidden'
 	lightboxChromeBehavior: 'persistent' | 'autoHide'
+	/** Public grid browsing: numbered pages or batches appended while scrolling. */
+	paging: 'pages' | 'continuous'
 	story: { sections: GalleryStorySection[]; showAllMedia: boolean }
 }
 
@@ -169,6 +171,7 @@ export function createDefaultGallerySettings(): GallerySettings {
 		motionPreset: 'subtle',
 		lightboxFilmstripPlacement: 'auto',
 		lightboxChromeBehavior: 'autoHide',
+		paging: 'pages',
 		story: { sections: [], showAllMedia: true },
 	}
 	return {

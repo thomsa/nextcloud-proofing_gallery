@@ -6,9 +6,11 @@ export async function fetchPublicGalleryPage(url: string, signal: AbortSignal): 
 	return await response.json() as PublicGalleryPage
 }
 export function publicGalleryPageQuery(values: {
-	page: number; limit: number; path: string; search: string; sortBy: string; sortDirection: string; groupBy: string; focusId?: number | null
+	page: number; limit: number; path: string; search: string; sortBy: string; sortDirection: string; groupBy: string; focusId?: number | null; offset?: number
 }): string {
 	const query = new URLSearchParams({ page: String(Math.max(1, values.page)), limit: String(values.limit), path: values.path, search: values.search, sortBy: values.sortBy, sortDirection: values.sortDirection, groupBy: values.groupBy })
+	// The server prefers a page number over an offset, so continuous batches send only the offset.
+	if (values.offset !== undefined) { query.delete('page'); query.set('offset', String(Math.max(0, values.offset))) }
 	if (values.focusId) query.set('focusId', String(values.focusId))
 	return `gallery?${query}`
 }

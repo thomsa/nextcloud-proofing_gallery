@@ -31,6 +31,16 @@ final class GallerySettingsTest extends TestCase {
 		self::assertFalse($settings['presentation']['showFilenames']);
 	}
 
+	public function testPagingDefaultsToNumberedPagesAndAcceptsContinuousScrolling(): void {
+		self::assertSame('pages', GallerySettings::fromArray([])->jsonSerialize()['presentation']['paging']);
+		self::assertSame('continuous', GallerySettings::fromArray(['presentation' => ['paging' => 'continuous']])->jsonSerialize()['presentation']['paging']);
+	}
+
+	public function testRejectsUnknownPagingMode(): void {
+		$this->expectException(InvalidArgumentException::class);
+		GallerySettings::fromArray(['presentation' => ['paging' => 'endless']]);
+	}
+
 	public function testRejectsMalformedDesignAssetId(): void {
 		$this->expectException(InvalidArgumentException::class);
 		GallerySettings::fromArray(['presentation' => ['logoAssetId' => '../foreign']]);

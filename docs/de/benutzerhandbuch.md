@@ -115,6 +115,14 @@ Der Arbeitsbereich ist nach Aufgaben gegliedert:
 - **Prüfung** enthält Feedback, Kundenauswahlen, Exporte und Upload-Prüfung.
 - **Verlauf** protokolliert relevante Galerieereignisse.
 
+**Stil → Galerielayout → Blättern** legt fest, wie Besucher eine große Raster-,
+Masonry- oder Listengalerie durchsehen. **Nummerierte Seiten** zeigt 48
+Einträge pro Seite mit Seitensteuerung. **Fortlaufendes Scrollen** lädt die
+nächsten 48 Einträge, sobald Besucher sich dem Ende nähern oder in der
+Lightbox weiterblättern. Links auf ein bestimmtes Foto öffnen die Galerie
+weiterhin ab dem ersten Eintrag. Story-Layouts und Event-Albumübersichten
+verwenden immer Seiten.
+
 Galeriekarten und **Übersicht → Galerieinhalt** zeigen getrennte Bild- und
 Videozahlen einschließlich aller Unterordner. Es zählen nur unterstützte, lesbare
 Medien; Ordner, versteckte Dateien und fehlende Sammlungseinträge zählen nicht.

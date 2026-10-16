@@ -46,6 +46,7 @@ final class PresentationSettings implements JsonSerializable {
 		public readonly string $motionPreset,
 		public readonly string $lightboxFilmstripPlacement,
 		public readonly string $lightboxChromeBehavior,
+		public readonly string $paging,
 		public readonly StorySettings $story,
 	) {
 	}
@@ -62,7 +63,7 @@ final class PresentationSettings implements JsonSerializable {
 			'tileSize' => 'medium', 'tileGap' => 'normal', 'tileRadius' => 'soft', 'titleAlignment' => 'left',
 			'titleMode' => 'large', 'showMediaCount' => true, 'titleSize' => 'medium',
 			'showFilenames' => false, 'slideshowInterval' => 5, 'motionPreset' => 'subtle',
-			'lightboxFilmstripPlacement' => 'auto', 'lightboxChromeBehavior' => 'autoHide',
+			'lightboxFilmstripPlacement' => 'auto', 'lightboxChromeBehavior' => 'autoHide', 'paging' => 'pages',
 			'story' => StorySettings::defaults(),
 		];
 	}
@@ -136,6 +137,7 @@ final class PresentationSettings implements JsonSerializable {
 			SettingsInput::choice($value['motionPreset'], 'presentation.motionPreset', ['off', 'subtle', 'expressive']),
 			SettingsInput::choice($value['lightboxFilmstripPlacement'], 'presentation.lightboxFilmstripPlacement', ['auto', 'side', 'bottom', 'hidden']),
 			SettingsInput::choice($value['lightboxChromeBehavior'], 'presentation.lightboxChromeBehavior', ['persistent', 'autoHide']),
+			SettingsInput::choice($value['paging'], 'presentation.paging', ['pages', 'continuous']),
 			StorySettings::fromArray(SettingsInput::object($value, 'story')),
 		);
 	}

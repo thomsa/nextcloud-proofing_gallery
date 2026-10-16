@@ -104,6 +104,13 @@ The gallery workspace separates the common tasks:
 - **Review** contains feedback, client selections, exports, and upload moderation.
 - **History** records relevant gallery activity.
 
+**Style → Gallery layout → Browsing** chooses how visitors move through a large
+grid, masonry or list gallery. **Numbered pages** shows 48 items per page with
+page controls. **Continuous scrolling** appends the next 48 items as visitors
+approach the end and while they step through photos in the lightbox. Links to a
+specific photo still open the gallery from its first item. Story layouts and
+event album overviews always use pages.
+
 Gallery cards and **Overview → Gallery content** show separate image and video
 counts across all subfolders. Only supported, readable media counts; folders,
 hidden files, and unavailable collection entries do not. Counting runs in the

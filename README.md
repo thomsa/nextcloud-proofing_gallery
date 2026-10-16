@@ -19,7 +19,8 @@ Automation, Privacy, and History workspaces.
 - presentation and collaborative proofing modes
 - standard Nextcloud public-link protection, password, and expiry
 - responsive image/video gallery with nested folders, previews, lightbox,
-  slideshow, zoom, pan, and byte-range video streaming
+  slideshow, zoom, pan, and byte-range video streaming; numbered pages or
+  continuous scrolling per gallery
 - bounded FFmpeg background transcoding for camera formats, with browser-ready
   H.264/AAC MP4 derivatives, generated posters, and administrator controls
 - optional owner search over local filenames and metadata, plus scene search

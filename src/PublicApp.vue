@@ -21,6 +21,8 @@ import { usePublicGalleryPage } from './composables/usePublicGalleryPage.ts'
 import { usePublicCollaboration } from './composables/usePublicCollaboration.ts'
 import { usePublicLiveUpdates } from './composables/usePublicLiveUpdates.ts'
 import { usePublicAppearance } from './composables/usePublicAppearance.ts'
+import { usePublicContinuousGallery } from './composables/usePublicContinuousGallery.ts'
+import { usePublicGalleryDownload } from './composables/usePublicGalleryDownload.ts'
 const PublicGalleryControls = defineAsyncComponent(() => import('./components/PublicGalleryControls.vue'))
 const PublicLightbox = defineAsyncComponent(() => import('./components/PublicLightbox.vue'))
 const PublicGalleryHeader = defineAsyncComponent(() => import('./components/PublicGalleryHeader.vue'))
@@ -50,7 +52,11 @@ let collaborationFrame: number | undefined
 const pageState = usePublicGalleryPage({
 	initial: props.gallery.initialPage,
 	url: (page, focusId) => publicEndpoint(pageQuery(page, focusId)),
-	apply: async (payload, focusId, current) => { applyGalleryPage(payload); await nextTick(); if (current() && focusId) openPhotoFromLocation(focusId) },
+	apply: async (payload, focusId, current) => {
+		const page = await continuous.fromStart(payload, current)
+		if (!current()) return
+		applyGalleryPage(page); await nextTick(); if (current() && focusId) openPhotoFromLocation(focusId)
+	},
 })
 const { load: loadPage, loading, error } = pageState
 const items = computed(() => pageState.snapshot.value?.items ?? [])
@@ -67,7 +73,7 @@ const { visitorPreference, effectiveTheme, setVisitorPreference } = usePublicApp
 const appearancePreference = computed({ get: () => visitorPreference.value, set: setVisitorPreference })
 const pageStyle = computed(() => publicGalleryThemeStyle(settings.value))
 
-const pageCount = computed(() => pageState.snapshot.value?.pageCount ?? Math.max(1, Math.ceil(total.value / PUBLIC_GALLERY_PAGE_SIZE)))
+const pageCount = computed(() => continuousActive.value ? 1 : pageState.snapshot.value?.pageCount ?? Math.max(1, Math.ceil(total.value / PUBLIC_GALLERY_PAGE_SIZE)))
 const navigation = usePublicGalleryNavigation({
 	token: props.gallery.token, settings, preview: isStaticPreview, collection: props.gallery.initialPage?.scope.viewMode === 'collection', pageCount, loadPage,
 	openPhoto: openPhotoFromLocation, closePhoto: () => { activeIndex.value = null; activeOpener.value = null }, closePanel: () => { activePanel.value = null }, scrollToGrid,
@@ -80,23 +86,31 @@ const headerHeroUrl = computed(() => settings.value.presentation.heroFileId ? as
 const headerLogoUrl = computed(() => galleryHasLogo(settings.value.presentation) ? assetUrl('logo') : null)
 const activeIndex = ref<number | null>(props.staticPreview?.scene && props.staticPreview.scene !== 'gallery' ? 0 : null)
 const activeOpener = ref<HTMLElement | null>(null)
+const lightboxMediaItems = computed(() => layout.value === 'story' ? mediaItems.value.concat(story.value) : mediaItems.value)
+// Story and event album pages keep numbered pages; the design preview never fetches further batches.
+const continuousActive = computed(() => !isStaticPreview && settings.value.presentation.paging === 'continuous' && layout.value !== 'story' && !eventAlbumRoot.value)
+const continuous = usePublicContinuousGallery({
+	enabled: () => continuousActive.value, snapshot: pageState.snapshot, replace: pageState.replace, url: (offset, limit) => publicEndpoint(pageQuery(1, null, { offset, limit })),
+	mediaItems: () => lightboxMediaItems.value, activeIndex: () => activeIndex.value,
+})
+const { hasMore: continuousHasMore, appending, failed: appendFailed, loadMore } = continuous
 const { guest, collaboration, nonce, requestAsGuest, clearIdentity, joining, collaborationError, guestDialogOpen, initializeCollaboration, loadCollaboration, joinCollaboration, mutateCollaboration, cancelPendingMutation } = usePublicCollaboration({
-	token: props.gallery.token, enabled: !isStaticPreview, settings, mediaItems, endpoint: publicEndpoint, reloadPage: () => loadPage(currentPage.value),
+	token: props.gallery.token, enabled: !isStaticPreview, settings, mediaItems: continuous.collaborationItems, endpoint: publicEndpoint, reloadPage: () => loadPage(currentPage.value),
 })
 const { selectedIds, selectionMode, compareOpen, compareItems, selectionName, selectionMessage, savingSelection, saveSelection, toggleSelection, startSelectionMode, finishSelectionMode, openSelectionCompare, toggleCompare } = usePublicSelection({
 	token: props.gallery.token, preview: isStaticPreview, settings, mediaItems, mutate: mutateCollaboration, closePanel: () => { activePanel.value = null },
 })
-const galleryDownloadBusy = ref(false)
-const galleryDownloadError = ref('')
+const { galleryDownloadBusy, galleryDownloadError, downloadEntireGallery } = usePublicGalleryDownload({ endpoint: publicEndpoint, start: url => startDownload(url), closePanel: () => { activePanel.value = null } })
 const [downloadPreset, downloadWatermark] = [ref<PublicDownloadPreset>('original'), ref(false)]
 const review = ref(props.gallery.review ?? { enabled: false, dueDate: null, rules: { minimum: 0, maximum: 0 }, progress: null, current: null })
-const lightboxMediaItems = computed(() => layout.value === 'story' ? mediaItems.value.concat(story.value) : mediaItems.value)
 usePublicLiveUpdates({
 	enabled: () => !isStaticPreview && props.gallery.initialPage?.gallery.liveUpdates === true,
 	busy: () => loading.value || compareOpen.value,
-	url: () => publicEndpoint(pageQuery(currentPage.value)),
+	url: () => continuousActive.value ? continuous.refreshUrl() : publicEndpoint(pageQuery(currentPage.value)),
 	photoId: () => activeIndex.value === null ? null : lightboxMediaItems.value[activeIndex.value]?.id ?? null,
-	apply: (page, photoId) => {
+	apply: (fresh, photoId) => {
+		const page = continuousActive.value ? continuous.refresh(fresh) : fresh
+		if (!page) return
 		applyGalleryPage(page)
 		if (photoId !== null) {
 			const index = lightboxMediaItems.value.findIndex(item => item.id === photoId)
@@ -180,7 +194,8 @@ onMounted(async () => {
 		})
 		pageSwipeGesture.enable()
 	}
-	const initialMatches = matchesInitialGalleryPage(props.gallery.initialPage, { ...locationState(), photoId: initialLocation.photoId }, settings.value)
+	// A server-rendered focus page starts mid-gallery; continuous browsing reloads it from the first item.
+	const initialMatches = matchesInitialGalleryPage(props.gallery.initialPage, { ...locationState(), photoId: initialLocation.photoId }, settings.value) && !(continuousActive.value && (props.gallery.initialPage?.offset ?? 0) > 0)
 	if (initialMatches) deferCollaborationInitialization()
 	else loadPage(currentPage.value, initialLocation.photoId).then(() => deferCollaborationInitialization())
 	mobileViewportQuery.addEventListener('change', onMobileViewportChange)
@@ -227,8 +242,8 @@ function deferCollaborationInitialization() {
 	})
 }
 
-function pageQuery(page: number, focusId: number | null = null) {
-	return publicGalleryPageQuery({ limit: PUBLIC_GALLERY_PAGE_SIZE, page, path: currentPath.value, search: search.value, sortBy: sortOverride.value ? sortBy.value : '', sortDirection: sortOverride.value ? sortDirection.value : '', groupBy: groupBy.value, focusId })
+function pageQuery(page: number, focusId: number | null = null, batch?: { offset: number; limit: number }) {
+	return publicGalleryPageQuery({ limit: batch?.limit ?? PUBLIC_GALLERY_PAGE_SIZE, page: continuousActive.value ? 1 : page, offset: batch?.offset, path: currentPath.value, search: search.value, sortBy: sortOverride.value ? sortBy.value : '', sortDirection: sortOverride.value ? sortDirection.value : '', groupBy: groupBy.value, focusId })
 }
 
 function applyGalleryPage(payload: PublicGalleryPage) {
@@ -326,34 +341,6 @@ async function startDownload(url: string, newTab = false) {
 	const { triggerPublicDownload } = await import('./domain/publicGalleryActions.ts')
 	triggerPublicDownload(url, newTab)
 	activePanel.value = null
-}
-
-type GalleryDownloadStatus = { available: boolean, reason: 'empty' | 'too_many_files' | 'too_large' | 'index_incomplete' | null, fileCount: number, totalBytes: number, maxFiles: number, maxBytes: number }
-
-async function downloadEntireGallery() {
-	activePanel.value = null
-	galleryDownloadError.value = ''
-	galleryDownloadBusy.value = true
-	try {
-		const response = await fetch(publicEndpoint('download/gallery/status'), { headers: { Accept: 'application/json' } })
-		if (!response.ok) throw new Error()
-		const status = await response.json() as GalleryDownloadStatus
-		if (!status.available) {
-			galleryDownloadError.value = status.reason === 'too_many_files'
-				? t('proofing_gallery', 'This gallery contains more than {limit} downloadable files.', { limit: status.maxFiles })
-				: status.reason === 'too_large'
-					? t('proofing_gallery', 'This gallery is larger than the configured download limit.')
-					: status.reason === 'index_incomplete'
-						? t('proofing_gallery', 'This gallery is still being prepared. Try the download again later.')
-						: t('proofing_gallery', 'This gallery does not contain downloadable files.')
-			return
-		}
-		await startDownload(publicEndpoint('download/gallery'))
-	} catch {
-		galleryDownloadError.value = t('proofing_gallery', 'The gallery download could not be prepared.')
-	} finally {
-		galleryDownloadBusy.value = false
-	}
 }
 
 function selectionExportUrl(selectionId: string, format: 'csv' | 'plain' | 'search', fields: string[] = []): string {
@@ -590,7 +577,11 @@ function groupLabel(group: string | undefined): string {
 								:gap="tileGap"
 								:item-dimensions="mediaDimensions"
 								:scroll-element="scrollElement"
-								:aria-label="t('proofing_gallery', 'Gallery files')">
+								:has-more="continuousHasMore"
+								:loading-more="appending"
+								:aria-label="t('proofing_gallery', 'Gallery files')"
+								@load-more="loadMore"
+								@visible-range="continuous.setVisibleRange">
 								<template #default="{ item, index }">
 									<article
 										class="media-tile"
@@ -639,6 +630,12 @@ function groupLabel(group: string | undefined): string {
 								</template>
 							</VirtualMediaGrid>
 						</div>
+						<p v-if="!loading && (appending || appendFailed)" class="public-gallery__more" role="status">
+							<button v-if="appendFailed" type="button" @click="loadMore">
+								{{ t('proofing_gallery', 'Load more photos') }}
+							</button>
+							<span v-else>{{ t('proofing_gallery', 'Loading more photos…') }}</span>
+						</p>
 					</section>
 
 					<PublicCollaborationSheet v-if="settings.mode === 'collaboration' && collaborationSheetLoaded"

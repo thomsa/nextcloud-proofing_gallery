@@ -48,7 +48,7 @@ const props = withDefaults(defineProps<{
 	ariaLabel: undefined,
 })
 
-const emit = defineEmits<{ 'load-more': [] }>()
+const emit = defineEmits<{ 'load-more': []; 'visible-range': [first: number, last: number] }>()
 
 const CONTAINED_MIN_HEIGHT = 360
 const CONTAINED_VIEWPORT_MARGIN = 8
@@ -196,6 +196,7 @@ defineExpose({ scrollToIndex, measure })
 
 watch(renderedPositions, visible => {
 	const last = visible.at(-1)?.index ?? -1
+	if (visible.length) emit('visible-range', visible[0]!.index, last)
 	if (props.hasMore && !props.loadingMore && last >= props.items.length - 4) emit('load-more')
 })
 watch([
