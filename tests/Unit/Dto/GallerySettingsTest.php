@@ -36,6 +36,12 @@ final class GallerySettingsTest extends TestCase {
 		self::assertSame('continuous', GallerySettings::fromArray(['presentation' => ['paging' => 'continuous']])->jsonSerialize()['presentation']['paging']);
 	}
 
+	public function testAcceptsOverlayTitleAndFullScreenOpening(): void {
+		$presentation = GallerySettings::fromArray(['presentation' => ['titleMode' => 'overlay', 'openerStyle' => 'fullscreen']])->jsonSerialize()['presentation'];
+		self::assertSame('overlay', $presentation['titleMode']);
+		self::assertSame('fullscreen', $presentation['openerStyle']);
+	}
+
 	public function testRejectsUnknownPagingMode(): void {
 		$this->expectException(InvalidArgumentException::class);
 		GallerySettings::fromArray(['presentation' => ['paging' => 'endless']]);

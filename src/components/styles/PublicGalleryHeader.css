@@ -60,3 +60,13 @@
 	.gallery-app-header > ion-toolbar:not(.gallery-app-header__pager, .gallery-app-header__search) ion-title { max-width: 88px; padding-inline: 6px 2px; }
 	.gallery-app-header ion-buttons ion-button { --padding-start: 5px; --padding-end: 5px; width: 38px; }
 }
+
+/* Over a full-screen cover the header floats transparently until the photos scroll under it. */
+.gallery-app-header { transition: background-color 180ms ease; }
+
+.gallery-app-header--overlay { background: linear-gradient(rgb(0 0 0 / 38%), transparent); }
+
+.gallery-app-header--overlay ion-toolbar { --background: transparent; --border-color: transparent; --color: #fff; }
+
+.gallery-app-header--overlay ion-button,
+.gallery-app-header--overlay :deep(ion-button) { color: #fff !important; --color: #fff; }

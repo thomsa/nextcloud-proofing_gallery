@@ -104,6 +104,12 @@ The gallery workspace separates the common tasks:
 - **Review** contains feedback, client selections, exports, and upload moderation.
 - **History** records relevant gallery activity.
 
+**Style → Opening → Title display → Overlay on cover image** darkens the cover
+image and centers the title, photo count and welcome message on it in white.
+**Opening → Full screen cover** fills the whole screen with the cover, always
+uses the overlay title, and shows a **Scroll down** button that leads to the
+photos. Without a cover image, a dark backdrop in the accent color is used.
+
 **Style → Gallery layout → Browsing** chooses how visitors move through a large
 grid, masonry or list gallery. **Numbered pages** shows 48 items per page with
 page controls. **Continuous scrolling** appends the next 48 items as visitors

@@ -21,7 +21,7 @@ export interface GalleryAppearance {
 	heroFileId: number | null
 	coverFileId: number | null
 	heroSource: 'cover' | 'custom' | 'none'
-	openerStyle: 'minimal' | 'compact' | 'cinematic'
+	openerStyle: 'minimal' | 'compact' | 'cinematic' | 'fullscreen'
 	heroFocusX: number
 	heroFocusY: number
 	fontPreset: 'system' | 'editorial' | 'modern'
@@ -42,7 +42,7 @@ export interface GalleryPresentation extends GalleryAppearance {
 	tileGap: 'tight' | 'normal' | 'wide'
 	tileRadius: 'square' | 'soft'
 	titleAlignment: 'left' | 'center'
-	titleMode: 'large' | 'compact' | 'hidden'
+	titleMode: 'large' | 'compact' | 'overlay' | 'hidden'
 	showMediaCount: boolean
 	titleSize: 'medium' | 'large'
 	showFilenames: boolean
