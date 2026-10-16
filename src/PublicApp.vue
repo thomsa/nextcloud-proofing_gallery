@@ -309,7 +309,8 @@ function scrollToGrid() {
 	const grid = document.querySelector<HTMLElement>('.media-grid-shell')
 	const scroller = scrollElement.value
 	if (!grid || !scroller) return
-	const top = grid.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop - 12
+	// Content scrolls under the header, so the grid must land below the header's bottom edge.
+	const top = grid.getBoundingClientRect().top - Math.max(scroller.getBoundingClientRect().top, document.querySelector('.gallery-app-header')?.getBoundingClientRect().bottom ?? 0) + scroller.scrollTop - 12
 	scroller.scrollTo({ top, behavior: 'smooth' })
 }
 
