@@ -7,6 +7,7 @@ namespace OCA\ProofingGallery\Controller;
 use OCA\ProofingGallery\Domain\CollaborationActor;
 use OCA\ProofingGallery\Exception\ReviewConflictException;
 use OCA\ProofingGallery\Service\AuthenticatedCollaborationSession;
+use OCA\ProofingGallery\Service\FeedbackPolicyService;
 use OCA\ProofingGallery\Service\GuestService;
 use OCA\ProofingGallery\Service\PublicShareContextResolver;
 use OCA\ProofingGallery\Service\ReviewWorkflowService;
@@ -28,6 +29,7 @@ final class PublicReviewController extends ResolvedPublicShareController {
 		private ReviewWorkflowService $reviews,
 		private GuestService $guests,
 		private AuthenticatedCollaborationSession $authenticated,
+		private FeedbackPolicyService $feedback,
 	) {
 		parent::__construct($request, $session, $contextResolver);
 	}
@@ -43,7 +45,39 @@ final class PublicReviewController extends ResolvedPublicShareController {
 				$actor = CollaborationActor::guest($this->guests->authenticate($context->gallery, $this->guestSecret($context->gallery)));
 			} catch (DoesNotExistException) {}
 		}
-		return new JSONResponse($this->reviews->publicState($context->gallery, $context->link, $actor));
+		$state = $this->reviews->publicState($context->gallery, $context->link, $actor);
+		$state['picks'] = $actor !== null && $this->picksEnabled() ? $this->reviews->picks($context->gallery, $actor) : [];
+		return new JSONResponse($state);
+	}
+
+	#[PublicPage]
+	#[NoCSRFRequired]
+	#[AnonRateLimit(limit: 30, period: 3600)]
+	#[FrontpageRoute(verb: 'POST', url: '/public/{token}/review/send')]
+	public function send(string $name = '', string $message = ''): JSONResponse {
+		try {
+			if (!$this->picksEnabled()) return new JSONResponse(['code' => 'policy_denied', 'message' => 'Picks are disabled for this link'], Http::STATUS_FORBIDDEN);
+			$context = $this->publicContext();
+			$actor = $this->authenticateActor($context->gallery);
+			$state = $this->reviews->sendPicks($context->gallery, $context->link, $actor, trim($name) !== '' ? $name : 'Selected photos', $message);
+			$state['picks'] = $this->reviews->picks($context->gallery, $actor);
+			return new JSONResponse($state);
+		} catch (DoesNotExistException) {
+			return new JSONResponse(['code' => 'guest_session_required', 'message' => 'Collaboration identity required'], Http::STATUS_UNAUTHORIZED);
+		} catch (ReviewConflictException $exception) {
+			return new JSONResponse(['code' => 'review_conflict', 'message' => $exception->getMessage()], Http::STATUS_CONFLICT);
+		} catch (\InvalidArgumentException $exception) {
+			if ($exception->getMessage() === 'Invalid request nonce') {
+				return new JSONResponse(['code' => 'invalid_nonce', 'message' => $exception->getMessage()], Http::STATUS_FORBIDDEN);
+			}
+			return new JSONResponse(['message' => $exception->getMessage()], Http::STATUS_UNPROCESSABLE_ENTITY);
+		}
+	}
+
+	private function picksEnabled(): bool {
+		$context = $this->publicContext();
+		$features = $this->feedback->effective($context->settings, $context->policy);
+		return $features['pick'] && $features['selections'];
 	}
 
 	#[PublicPage]

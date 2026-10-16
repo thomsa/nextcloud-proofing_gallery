@@ -312,6 +312,35 @@ final class CollaborationService {
 		});
 	}
 
+	/**
+	 * Stores a reviewer's picked photos as their selection. With a review round
+	 * the open draft is refreshed in place; otherwise each send is a new selection.
+	 *
+	 * @param list<int> $fileIds
+	 */
+	public function savePickedSelection(Gallery $gallery, PublicLink $link, CollaborationActor $actor, string $name, string $message, array $fileIds): void {
+		$current = $link->getReviewEnabled()
+			? $this->repository->latestSelectionForLink((int)$gallery->getId(), (int)$link->getId(), $actor->guestId(), $actor->userUid())
+			: null;
+		if ($current === null || $current['status'] !== 'open') {
+			$this->saveSelection($gallery, $link, $actor, $name, $message, $fileIds);
+			return;
+		}
+		$this->atomic(function () use ($gallery, $actor, $message, $fileIds, $current): void {
+			$this->capabilities->assertFeature('selections');
+			$this->assertCollaborationMode($gallery);
+			if (!$this->settings($gallery)->review->selections) throw new InvalidArgumentException('Selections are disabled');
+			$message = trim($message);
+			$fileIds = array_values(array_unique(array_map('intval', $fileIds)));
+			if (mb_strlen($message) > 2000 || count($fileIds) > 1000) throw new InvalidArgumentException('Invalid selection');
+			foreach ($fileIds as $fileId) $this->resolveMedia($gallery, $fileId);
+			$now = $this->clock->getTime();
+			if (!$this->repository->replaceSelectionItems((int)$current['id'], $message, $fileIds, $now)) throw new InvalidArgumentException('The submitted selection is locked');
+			$this->event($gallery, $actor, 'selection.updated', ['selectionId' => (string)$current['public_id'], 'count' => count($fileIds)]);
+			$this->markResponseReceived($gallery, $now);
+		});
+	}
+
 	private function markResponseReceived(Gallery $gallery, int $now): void {
 		$this->repository->markResponseReceived($gallery->getId(), $now);
 	}

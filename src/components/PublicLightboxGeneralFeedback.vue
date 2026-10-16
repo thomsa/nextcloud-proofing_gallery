@@ -38,7 +38,8 @@ const emit = defineEmits<{
 const colorPalette = ['#f1c84b', '#4f8cff', '#f28b3c', '#db4b4b']
 function reviewStateLabel(label: string): string {
 	if (label === 'Favorite') return t('proofing_gallery', 'Favorite')
-	if (label === 'Selected') return t('proofing_gallery', 'Selected')
+	// Picks are the reviewer's selection; the former default label would read as the same thing.
+	if (label === 'Selected' || label === 'Shortlist') return t('proofing_gallery', 'Shortlist')
 	if (label === 'Needs changes') return t('proofing_gallery', 'Needs changes')
 	if (label === 'Rejected') return t('proofing_gallery', 'Rejected')
 	return label

@@ -64,7 +64,7 @@ final class CollaborationController extends ResolvedPublicShareController {
 	#[NoCSRFRequired]
 	#[AnonRateLimit(limit: 600, period: 3600)]
 	#[FrontpageRoute(verb: 'PUT', url: '/public/{token}/collaboration/media/{fileId}/rating')]
-	public function setRating(int $fileId, int $rating = 0, string $pick = 'none'): JSONResponse {
+	public function setRating(int $fileId, ?int $rating = null, string $pick = 'none'): JSONResponse {
 		if (!$this->ratingEnabled()) return new JSONResponse(['code' => 'policy_denied', 'message' => 'Guest ratings are disabled for this link'], Http::STATUS_FORBIDDEN);
 		if (!$this->allowsFile($fileId)) return new JSONResponse(['message' => 'Media not found'], Http::STATUS_NOT_FOUND);
 		try {
@@ -72,7 +72,8 @@ final class CollaborationController extends ResolvedPublicShareController {
 			$permissions = $this->ratingPermissions();
 			$current = null;
 			foreach ($this->guestRatings->forActor($this->resolvedGallery()->getId(), $actor) as $saved) if ($saved->getFileId() === $fileId) { $current = $saved; break; }
-			$rating = $permissions['ratings'] ? $rating : ($current?->getRating() ?? 0);
+			// A pick-only change (no rating sent) keeps the reviewer's existing stars.
+			$rating = $permissions['ratings'] && $rating !== null ? $rating : ($current?->getRating() ?? 0);
 			$pick = $permissions['pick'] ? $pick : ($current?->getPickState() ?? 'none');
 			$value = $this->collaboration->saveRating($this->resolvedPublicLink(), $this->resolvedGallery(), $actor, $fileId, $rating, $pick);
 			$this->shareAudit->record(
