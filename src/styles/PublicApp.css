@@ -571,6 +571,8 @@
 	height: 100%;
 	padding: 0;
 	border: 0;
+	/* Nextcloud and server themes round every button; the tile owns the corner shape. */
+	border-radius: inherit;
 	background: transparent;
 	color: inherit;
 	cursor: pointer;
