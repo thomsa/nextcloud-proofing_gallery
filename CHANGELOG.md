@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- add an **Overlay on cover image** title display that centers a white title,
+  photo count and welcome message on the darkened cover, and a **Full screen
+  cover** opening with a transparent header and an animated **Scroll down**
+  button
+
 - simplify client selections in proofing galleries: every photo has a select
   circle and the lightbox a Select toggle (key P); picks are the selection,
   saved per reviewer, and a floating bar shows progress, rules and due date with

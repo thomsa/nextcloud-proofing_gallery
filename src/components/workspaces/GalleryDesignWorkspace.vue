@@ -11,7 +11,7 @@ import DesignSection from '../DesignSection.vue'
 import type { GallerySettings } from '../../domain/gallerySettings.ts'
 import { galleryHeroFileId } from '../../domain/galleryArtwork.ts'
 import { publicMetadataOptions } from '../../domain/gallerySettingsOptions.ts'
-import { applyGalleryTitleMode, galleryTitleMode } from '../../domain/galleryTitlePresentation.ts'
+import { applyGalleryTitleMode, effectiveGalleryTitleMode, galleryTitleMode } from '../../domain/galleryTitlePresentation.ts'
 import type { GalleryTitleMode } from '../../domain/galleryTitlePresentation.ts'
 import { ownerPreviewUrl } from '../../services/galleryApi.ts'
 import type { DesignAsset } from '../../services/galleryApi.ts'
@@ -121,18 +121,22 @@ function previewUrl(fileId: number, width = 560, height = 360): string {
 						<option value="minimal">{{ t('proofing_gallery', 'Minimal introduction') }}</option>
 						<option value="compact">{{ t('proofing_gallery', 'Compact, media first') }}</option>
 						<option value="cinematic">{{ t('proofing_gallery', 'Cinematic cover') }}</option>
+						<option value="fullscreen">{{ t('proofing_gallery', 'Full screen cover') }}</option>
 					</select>
 				</label>
 				<p v-if="settings.presentation.openerStyle === 'cinematic' && !effectiveHeroFileId" class="field-hint">
 					{{ t('proofing_gallery', 'Choose a cover image for the cinematic opening. Until then, the gallery opens compactly.') }}
 				</p>
 				<div class="header-visibility">
-					<label class="select-field"><span>{{ t('proofing_gallery', 'Title display') }}</span><select v-model="titleMode" name="titleMode"><option value="large">{{ t('proofing_gallery', 'Large title') }}</option><option value="compact">{{ t('proofing_gallery', 'Compact title') }}</option><option value="hidden">{{ t('proofing_gallery', 'No title') }}</option></select></label>
+					<label class="select-field"><span>{{ t('proofing_gallery', 'Title display') }}</span><select v-model="titleMode" name="titleMode"><option value="large">{{ t('proofing_gallery', 'Large title') }}</option><option value="compact">{{ t('proofing_gallery', 'Compact title') }}</option><option value="overlay">{{ t('proofing_gallery', 'Overlay on cover image') }}</option><option value="hidden">{{ t('proofing_gallery', 'No title') }}</option></select></label>
 					<NcCheckboxRadioSwitch v-model="settings.presentation.showMediaCount" type="switch">
 						{{ t('proofing_gallery', 'Show photo count in header') }}
 					</NcCheckboxRadioSwitch>
 				</div>
-				<label v-if="titleMode !== 'hidden'" class="select-field"><span>{{ t('proofing_gallery', 'Title alignment') }}</span><select v-model="settings.presentation.titleAlignment" name="titleAlignment"><option value="left">{{ t('proofing_gallery', 'Left') }}</option><option value="center">{{ t('proofing_gallery', 'Centered') }}</option></select></label>
+				<p v-if="settings.presentation.openerStyle === 'fullscreen' && titleMode !== 'hidden'" class="field-hint">
+					{{ t('proofing_gallery', 'A full screen cover always shows the title, photo count and welcome message centered over the image.') }}
+				</p>
+				<label v-if="titleMode !== 'hidden' && effectiveGalleryTitleMode(settings.presentation) !== 'overlay'" class="select-field"><span>{{ t('proofing_gallery', 'Title alignment') }}</span><select v-model="settings.presentation.titleAlignment" name="titleAlignment"><option value="left">{{ t('proofing_gallery', 'Left') }}</option><option value="center">{{ t('proofing_gallery', 'Centered') }}</option></select></label>
 				<NcTextArea v-model="settings.presentation.welcomeMessage" name="welcomeMessage" :label="t('proofing_gallery', 'Welcome message')" />
 				<label class="select-field"><span>{{ t('proofing_gallery', 'Public title image') }}</span><select v-model="settings.presentation.heroSource" name="heroSource"><option value="cover">{{ t('proofing_gallery', 'Use preview image') }}</option><option value="custom">{{ t('proofing_gallery', 'Choose a different image') }}</option><option value="none">{{ t('proofing_gallery', 'No title image') }}</option></select></label>
 				<p v-if="settings.presentation.heroSource === 'cover'" class="field-hint">
@@ -148,7 +152,7 @@ function previewUrl(fileId: number, width = 560, height = 360): string {
 					</div>
 				</div>
 				<label class="select-field"><span>{{ t('proofing_gallery', 'Title typeface') }}</span><select v-model="settings.presentation.fontPreset" name="fontPreset"><option value="system">{{ t('proofing_gallery', 'System') }}</option><option value="editorial">{{ t('proofing_gallery', 'Editorial serif') }}</option><option value="modern">{{ t('proofing_gallery', 'Studio sans') }}</option></select></label>
-				<label v-if="titleMode === 'large'" class="select-field"><span>{{ t('proofing_gallery', 'Large title size') }}</span><select v-model="settings.presentation.titleSize" name="titleSize"><option value="medium">{{ t('proofing_gallery', 'Standard') }}</option><option value="large">{{ t('proofing_gallery', 'Statement') }}</option></select></label>
+				<label v-if="['large', 'overlay'].includes(effectiveGalleryTitleMode(settings.presentation))" class="select-field"><span>{{ t('proofing_gallery', 'Large title size') }}</span><select v-model="settings.presentation.titleSize" name="titleSize"><option value="medium">{{ t('proofing_gallery', 'Standard') }}</option><option value="large">{{ t('proofing_gallery', 'Statement') }}</option></select></label>
 				<div v-if="settings.presentation.openerStyle !== 'minimal' && effectiveHeroFileId" class="range-fields">
 					<label><span>{{ t('proofing_gallery', 'Horizontal cover focus') }}</span><input v-model.number="settings.presentation.heroFocusX"
 						name="heroFocusX"

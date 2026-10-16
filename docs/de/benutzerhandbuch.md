@@ -115,6 +115,13 @@ Der Arbeitsbereich ist nach Aufgaben gegliedert:
 - **Prüfung** enthält Feedback, Kundenauswahlen, Exporte und Upload-Prüfung.
 - **Verlauf** protokolliert relevante Galerieereignisse.
 
+**Stil → Einstieg → Titeldarstellung → Über dem Titelbild** dunkelt das Titelbild
+ab und zeigt Titel, Fotoanzahl und Begrüßung zentriert in Weiß darauf.
+**Einstieg → Titelbild im Vollbild** füllt den ganzen Bildschirm mit dem
+Titelbild, verwendet immer den überlagerten Titel und zeigt eine Schaltfläche
+**Nach unten scrollen**, die zu den Fotos führt. Ohne Titelbild erscheint ein
+dunkler Hintergrund in der Akzentfarbe.
+
 **Stil → Galerielayout → Blättern** legt fest, wie Besucher eine große Raster-,
 Masonry- oder Listengalerie durchsehen. **Nummerierte Seiten** zeigt 48
 Einträge pro Seite mit Seitensteuerung. **Fortlaufendes Scrollen** lädt die

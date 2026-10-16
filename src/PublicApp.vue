@@ -26,6 +26,7 @@ import { usePublicGalleryDownload } from './composables/usePublicGalleryDownload
 import { usePublicMediaDimensions } from './composables/usePublicMediaDimensions.ts'
 import { usePublicPicks } from './composables/usePublicPicks.ts'
 import { publicMediaUrls } from './domain/publicMediaUrls.ts'
+import { groupLabel } from './domain/publicGalleryGroups.ts'
 const PublicPickBar = defineAsyncComponent(() => import('./components/PublicPickBar.vue'))
 const PublicGalleryControls = defineAsyncComponent(() => import('./components/PublicGalleryControls.vue'))
 const PublicLightbox = defineAsyncComponent(() => import('./components/PublicLightbox.vue'))
@@ -90,6 +91,7 @@ const headerHeroUrl = computed(() => settings.value.presentation.heroFileId ? as
 const headerLogoUrl = computed(() => galleryHasLogo(settings.value.presentation) ? assetUrl('logo') : null)
 const activeIndex = ref<number | null>(props.staticPreview?.scene && props.staticPreview.scene !== 'gallery' ? 0 : null)
 const activeOpener = ref<HTMLElement | null>(null)
+const heroBehindHeader = ref(false)
 const lightboxMediaItems = computed(() => layout.value === 'story' ? mediaItems.value.concat(story.value) : mediaItems.value)
 // Story and event album pages keep numbered pages; the design preview never fetches further batches.
 const continuousActive = computed(() => !isStaticPreview && settings.value.presentation.paging === 'continuous' && layout.value !== 'story' && !eventAlbumRoot.value)
@@ -380,13 +382,6 @@ function startsGroup(item: MediaItem, index: number): boolean {
 	return groupBy.value !== 'none' && (index === 0 || items.value[index - 1]?.group !== item.group)
 }
 
-function groupLabel(group: string | undefined): string {
-	if (group === 'image') return t('proofing_gallery', 'Images')
-	if (group === 'video') return t('proofing_gallery', 'Videos')
-	if (group === 'root') return t('proofing_gallery', 'Main folder')
-	return group || t('proofing_gallery', 'Other')
-}
-
 </script>
 
 <template>
@@ -400,7 +395,7 @@ function groupLabel(group: string | undefined): string {
 			<PublicGalleryHeader v-if="activeIndex === null && !compareOpen"
 				v-model:search="search"
 				v-model:appearance="appearancePreference"
-				:class="`logo-${settings.presentation.logoBackground}`"
+				:class="[`logo-${settings.presentation.logoBackground}`, { 'gallery-app-header--overlay': heroBehindHeader && !searchOpen && !selectionMode }]"
 				:title="title"
 				:title-mode="galleryTitleMode(settings.presentation)"
 				:studio-name="settings.presentation.instanceStudioName"
@@ -426,7 +421,10 @@ function groupLabel(group: string | undefined): string {
 				@navigate="navigateToPage"
 				@collaboration="collaborationSheetOpen = true"
 				@cancel-selection="finishSelectionMode" />
-			<IonContent ref="contentRef" :scroll-events="true" @ion-scroll="onContentScroll">
+			<IonContent ref="contentRef"
+				fullscreen
+				:scroll-events="true"
+				@ion-scroll="onContentScroll">
 				<div
 					class="public-gallery"
 					:class="[
@@ -444,7 +442,9 @@ function groupLabel(group: string | undefined): string {
 						:total="total"
 						:total-label="openerTotalLabel"
 						:settings="settings"
-						:hero-url="headerHeroUrl" />
+						:hero-url="headerHeroUrl"
+						@overlay="heroBehindHeader = $event"
+						@scroll-down="scrollToGrid" />
 					<div v-if="continueVisible" class="continuation-banner" role="status">
 						<span>{{ t('proofing_gallery', 'Continue where you left off?') }}</span>
 						<button type="button" @click="continueViewing">

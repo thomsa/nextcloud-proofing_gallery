@@ -1,9 +1,14 @@
 import type { GalleryPresentation } from './gallerySettings.ts'
 
-export type GalleryTitleMode = 'large' | 'compact' | 'hidden'
+export type GalleryTitleMode = 'large' | 'compact' | 'overlay' | 'hidden'
 
 export function galleryTitleMode(presentation: Pick<GalleryPresentation, 'titleMode'>): GalleryTitleMode {
 	return presentation.titleMode
+}
+
+// A full-screen opening always centers the title over the cover image.
+export function effectiveGalleryTitleMode(presentation: Pick<GalleryPresentation, 'titleMode' | 'openerStyle'>): GalleryTitleMode {
+	return presentation.openerStyle === 'fullscreen' && presentation.titleMode !== 'hidden' ? 'overlay' : presentation.titleMode
 }
 
 export function applyGalleryTitleMode(presentation: GalleryPresentation, mode: GalleryTitleMode): void {

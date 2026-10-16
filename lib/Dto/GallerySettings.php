@@ -65,7 +65,7 @@ final class GallerySettings implements JsonSerializable {
 		if (array_key_exists('allowDownloads', $input)) $delivery['downloadScope'] = SettingsInput::bool($input['allowDownloads'], 'allowDownloads') ? 'all' : 'none';
 		if (array_key_exists('allowGuestUploads', $input)) $delivery['guestUploads'] = SettingsInput::bool($input['allowGuestUploads'], 'allowGuestUploads');
 		if (array_key_exists('showFilenames', $input)) $presentation['showFilenames'] = SettingsInput::bool($input['showFilenames'], 'showFilenames');
-		if ($openerProvided && !in_array($presentation['openerStyle'] ?? null, ['minimal', 'compact', 'cinematic'], true)) {
+		if ($openerProvided && !in_array($presentation['openerStyle'] ?? null, ['minimal', 'compact', 'cinematic', 'fullscreen'], true)) {
 			throw new InvalidArgumentException('Invalid presentation.openerStyle');
 		}
 		if (!$openerProvided && $heroProvided && ($presentation['heroFileId'] ?? null) !== null) $presentation['openerStyle'] = 'cinematic';
