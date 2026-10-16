@@ -900,3 +900,14 @@
 		animation-duration: 0.01ms !important;
 	}
 }
+
+/* Reviewer selection: an always-available pick circle per tile and a floating send bar. */
+.public-gallery--pick-bar { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+
+.public-gallery--pick-bar .continuation-banner { bottom: calc(84px + env(safe-area-inset-bottom)); }
+
+.media-tile__pick { width: 30px; height: 30px; cursor: pointer; }
+
+.media-tile__pick::before { position: absolute; inset: -9px; content: ''; }
+
+.media-tile__pick:disabled { cursor: default; }

@@ -25,6 +25,8 @@ final class ReviewWorkflowService {
 		private PublicLinkMapper $links,
 		private GalleryAccessService $access,
 		private CollaborationRepository $collaboration,
+		private CollaborationService $collaborationService,
+		private GuestRatingService $guestRatings,
 		private ActivityService $activity,
 		private IntegrationEventService $integrations,
 		private ITimeFactory $clock,
@@ -70,6 +72,36 @@ final class ReviewWorkflowService {
 		if (($current['due_date'] ?? null) !== $dueDate) {
 			$this->rounds->updateDueDate((int)$current['id'], $dueDate, $this->clock->getTime());
 		}
+	}
+
+	/**
+	 * Photos the reviewer marked as Pick; these are their selection.
+	 *
+	 * @return list<int>
+	 */
+	public function picks(Gallery $gallery, CollaborationActor $actor): array {
+		$picked = array_filter($this->guestRatings->forActor((int)$gallery->getId(), $actor), static fn ($rating): bool => $rating->getPickState() === 'pick');
+		return array_values(array_map(static fn ($rating): int => $rating->getFileId(), $picked));
+	}
+
+	/**
+	 * Sends the reviewer's picks to the photographer. With a review round this
+	 * submits the round; without one it records a new selection.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function sendPicks(Gallery $gallery, PublicLink $link, CollaborationActor $actor, string $name, string $message): array {
+		$this->assertLink($gallery, $link);
+		$picks = $this->picks($gallery, $actor);
+		if ($picks === []) throw new \InvalidArgumentException('Select at least one photo before sending');
+		if ($link->getReviewEnabled()) {
+			$current = $this->ensure($link);
+			if ($current['status'] !== 'awaiting_feedback') throw new ReviewConflictException('This review round is no longer open');
+			$rules = $this->rules($gallery, $link);
+			if ($rules['maximum'] > 0 && count($picks) > $rules['maximum']) throw new \InvalidArgumentException('Select no more than ' . $rules['maximum'] . ' photos before submitting');
+		}
+		$this->collaborationService->savePickedSelection($gallery, $link, $actor, $name, $message, $picks);
+		return $link->getReviewEnabled() ? $this->submit($gallery, $link, $actor) : $this->publicState($gallery, $link, $actor);
 	}
 
 	/** @return array<string, mixed> */

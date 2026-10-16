@@ -59,6 +59,8 @@ export interface PublicReviewState {
 	rules: { minimum: number; maximum: number }
 	progress: { count: number; status: 'open' | 'submitted' | 'completed' } | null
 	current: ReviewRound | null
+	/** File IDs the current reviewer marked as Pick; these are their selection. */
+	picks?: number[]
 }
 
 export interface GuestIdentity {

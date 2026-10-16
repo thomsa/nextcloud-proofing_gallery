@@ -371,6 +371,36 @@ final class CollaborationRepository {
 			->andWhere($qb->expr()->eq('status', $qb->createNamedParameter($from)))->executeStatement() === 1;
 	}
 
+	/** @param list<int> $fileIds */
+	public function replaceSelectionItems(int $id, string $message, array $fileIds, int $now): bool {
+		$ownsTransaction = !$this->db->inTransaction();
+		if ($ownsTransaction) $this->db->beginTransaction();
+		try {
+			$qb = $this->db->getQueryBuilder();
+			$updated = $qb->update('proofing_selections')->set('message', $qb->createNamedParameter($message))
+				->set('updated_at', $qb->createNamedParameter($now, IQueryBuilder::PARAM_INT))
+				->where($qb->expr()->eq('id', $qb->createNamedParameter($id, IQueryBuilder::PARAM_INT)))
+				->andWhere($qb->expr()->eq('status', $qb->createNamedParameter('open')))->executeStatement() === 1;
+			if ($updated) {
+				$qb = $this->db->getQueryBuilder();
+				$qb->delete('proofing_selection_items')->where($qb->expr()->eq('selection_id', $qb->createNamedParameter($id, IQueryBuilder::PARAM_INT)))->executeStatement();
+				foreach ($fileIds as $fileId) {
+					$qb = $this->db->getQueryBuilder();
+					$qb->insert('proofing_selection_items')->values([
+						'selection_id' => $qb->createNamedParameter($id, IQueryBuilder::PARAM_INT),
+						'file_id' => $qb->createNamedParameter($fileId, IQueryBuilder::PARAM_INT),
+						'created_at' => $qb->createNamedParameter($now, IQueryBuilder::PARAM_INT),
+					])->executeStatement();
+				}
+			}
+			if ($ownsTransaction) $this->db->commit();
+			return $updated;
+		} catch (\Throwable $exception) {
+			if ($ownsTransaction) $this->db->rollBack();
+			throw $exception;
+		}
+	}
+
 	public function submitSelection(int $id, int $publicLinkId, int $now): bool {
 		$qb = $this->db->getQueryBuilder();
 		return $qb->update('proofing_selections')->set('status', $qb->createNamedParameter('submitted'))

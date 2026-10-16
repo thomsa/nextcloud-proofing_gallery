@@ -23,6 +23,10 @@ import { usePublicLiveUpdates } from './composables/usePublicLiveUpdates.ts'
 import { usePublicAppearance } from './composables/usePublicAppearance.ts'
 import { usePublicContinuousGallery } from './composables/usePublicContinuousGallery.ts'
 import { usePublicGalleryDownload } from './composables/usePublicGalleryDownload.ts'
+import { usePublicMediaDimensions } from './composables/usePublicMediaDimensions.ts'
+import { usePublicPicks } from './composables/usePublicPicks.ts'
+import { publicMediaUrls } from './domain/publicMediaUrls.ts'
+const PublicPickBar = defineAsyncComponent(() => import('./components/PublicPickBar.vue'))
 const PublicGalleryControls = defineAsyncComponent(() => import('./components/PublicGalleryControls.vue'))
 const PublicLightbox = defineAsyncComponent(() => import('./components/PublicLightbox.vue'))
 const PublicGalleryHeader = defineAsyncComponent(() => import('./components/PublicGalleryHeader.vue'))
@@ -103,6 +107,11 @@ const { selectedIds, selectionMode, compareOpen, compareItems, selectionName, se
 const { galleryDownloadBusy, galleryDownloadError, downloadEntireGallery } = usePublicGalleryDownload({ endpoint: publicEndpoint, start: url => startDownload(url), closePanel: () => { activePanel.value = null } })
 const [downloadPreset, downloadWatermark] = [ref<PublicDownloadPreset>('original'), ref(false)]
 const review = ref(props.gallery.review ?? { enabled: false, dueDate: null, rules: { minimum: 0, maximum: 0 }, progress: null, current: null })
+// In proofing galleries a reviewer's selection is the set of photos they picked.
+const picksActive = computed(() => !isStaticPreview && settings.value.mode === 'collaboration' && settings.value.review.pick !== false && settings.value.review.selections !== false)
+const { pickedIds, isPicked, toggle: togglePick, locked: picksLocked, send: pickSend, sending: pickSending, sendError: pickSendError, sendPicks } = usePublicPicks({
+	enabled: () => picksActive.value, review, collaboration, identified: () => !!(guest.value && nonce.value), mutate: mutateCollaboration, request: requestAsGuest,
+})
 usePublicLiveUpdates({
 	enabled: () => !isStaticPreview && props.gallery.initialPage?.gallery.liveUpdates === true,
 	busy: () => loading.value || compareOpen.value,
@@ -123,7 +132,8 @@ const searchOpen = ref(false)
 const collaborationSheetOpen = ref(false)
 const collaborationSheetLoaded = ref(false)
 watch(collaborationSheetOpen, open => { if (open) collaborationSheetLoaded.value = true })
-const mediaDimensions = ref<Record<number, { width: number; height: number }>>({})
+const { mediaDimensions, itemRatio, rememberDimensions } = usePublicMediaDimensions()
+const { previewUrl, tilePreviewUrl, streamUrl, selectionExportUrl } = publicMediaUrls(publicEndpoint)
 // Panel mode changes only on phone-sized viewports. Narrow desktop windows keep
 // centered dialogs and floating annotation controls instead of mobile sheets.
 const mobileViewportQuery = window.matchMedia('(max-width: 520px)')
@@ -150,9 +160,9 @@ function galleryControlProps() {
 		downloadScope: downloadScope.value,
 		selectedCount: selectedIds.value.length,
 		contactSheet: settings.value.delivery?.contactSheet !== false,
-		canSelect: !eventAlbumRoot.value && (['selection', 'all'].includes(settings.value.delivery.downloadScope) || (settings.value.mode === 'collaboration' && settings.value.review?.selections !== false)),
+		canSelect: !eventAlbumRoot.value && (['selection', 'all'].includes(settings.value.delivery.downloadScope) || (settings.value.mode === 'collaboration' && settings.value.review?.selections !== false && !picksActive.value)),
 		canCompare: settings.value.mode === 'collaboration' && selectedIds.value.length >= 2,
-		canSaveSelection: settings.value.mode === 'collaboration' && settings.value.review?.selections !== false,
+		canSaveSelection: settings.value.mode === 'collaboration' && settings.value.review?.selections !== false && !picksActive.value,
 		savingSelection: savingSelection.value,
 		theme: effectiveTheme.value,
 		collaboration: settings.value.mode === 'collaboration',
@@ -301,37 +311,8 @@ function scrollToGrid() {
 	scroller.scrollTo({ top, behavior: 'smooth' })
 }
 
-function previewUrl(item: Pick<MediaItem, 'id'>, width = 900, height = 900, mode: 'cover' | 'fit' = 'cover'): string {
-	return publicEndpoint(`media/${item.id}/preview?x=${width}&y=${height}&mode=${mode}`)
-}
-
-function tilePreviewUrl(item: MediaItem): string {
-	return previewUrl(item, 900, 900, 'fit')
-}
-
-function itemRatio(item: MediaItem): number {
-	const dimensions = mediaDimensions.value[item.id]
-	const width = dimensions?.width ?? item.width ?? item.metadata?.width ?? 0
-	const height = dimensions?.height ?? item.height ?? item.metadata?.height ?? 0
-	if (width > 0 && height > 0) return width / height
-	return item.mimeType.startsWith('video/') ? 16 / 9 : 4 / 3
-}
-
-function rememberDimensions(item: MediaItem, event: Event) {
-	const image = event.currentTarget as HTMLImageElement
-	if (!image.naturalWidth || !image.naturalHeight) return
-	mediaDimensions.value = {
-		...mediaDimensions.value,
-		[item.id]: { width: image.naturalWidth, height: image.naturalHeight },
-	}
-}
-
 function assetUrl(kind: 'logo' | 'hero'): string {
 	return publicEndpoint(`asset/${kind}${kind === 'hero' ? `?v=${settings.value.presentation.heroFileId}` : ''}`)
-}
-
-function streamUrl(item: MediaItem): string {
-	return publicEndpoint(`media/${item.id}/stream`)
 }
 
 const downloadUrl = (item: MediaItem) => publicEndpoint(`media/${item.id}/download?${downloadQuery(downloadPreset.value, downloadWatermark.value)}`)
@@ -341,13 +322,6 @@ async function startDownload(url: string, newTab = false) {
 	const { triggerPublicDownload } = await import('./domain/publicGalleryActions.ts')
 	triggerPublicDownload(url, newTab)
 	activePanel.value = null
-}
-
-function selectionExportUrl(selectionId: string, format: 'csv' | 'plain' | 'search', fields: string[] = []): string {
-	const url = new URL(publicEndpoint(`collaboration/selections/${selectionId}/export`), window.location.origin)
-	url.searchParams.set('format', format)
-	if (fields.length) url.searchParams.set('fields', fields.join(','))
-	return url.toString()
 }
 
 function openItem(item: MediaItem, event?: MouseEvent) {
@@ -438,7 +412,7 @@ function groupLabel(group: string | undefined): string {
 				:selected-count="selectedIds.length"
 				:can-download="downloadScope !== 'none'"
 				:can-compare="settings.mode === 'collaboration' && selectedIds.length >= 2"
-				:collaboration="settings.mode === 'collaboration'"
+				:collaboration="settings.mode === 'collaboration' && !picksActive"
 				:configured-theme="settings.presentation.theme"
 				:effective-theme="effectiveTheme"
 				:search-target="eventAlbumRoot ? 'albums' : 'photos'"
@@ -462,6 +436,7 @@ function groupLabel(group: string | undefined): string {
 						`public-gallery--tiles-${settings.presentation.tileSize}`,
 						`public-gallery--gap-${settings.presentation.tileGap}`,
 						`public-gallery--radius-${settings.presentation.tileRadius}`,
+						{ 'public-gallery--pick-bar': picksActive },
 					]"
 					:style="pageStyle">
 					<PublicGalleryOpener
@@ -585,7 +560,7 @@ function groupLabel(group: string | undefined): string {
 								<template #default="{ item, index }">
 									<article
 										class="media-tile"
-										:class="{ 'media-tile--folder': item.folder, 'media-tile--selected': selectedIds.includes(item.id), 'media-tile--lead': item.id === mediaItems[0]?.id }">
+										:class="{ 'media-tile--folder': item.folder, 'media-tile--selected': selectedIds.includes(item.id) || (picksActive && isPicked(item.id)), 'media-tile--lead': item.id === mediaItems[0]?.id }">
 										<span v-if="startsGroup(item, index)" class="media-tile__group">{{ groupLabel(item.group) }}</span>
 										<button
 											class="media-tile__open"
@@ -626,6 +601,17 @@ function groupLabel(group: string | undefined): string {
 											@click="toggleSelection(item)">
 											{{ selectedIds.includes(item.id) ? '✓' : '' }}
 										</button>
+										<button v-else-if="picksActive && !item.folder"
+											class="media-tile__select media-tile__pick"
+											:class="{ 'media-tile__select--active': isPicked(item.id) }"
+											type="button"
+											role="checkbox"
+											:aria-checked="isPicked(item.id)"
+											:disabled="picksLocked"
+											:aria-label="t('proofing_gallery', 'Select {name}', { name: item.name })"
+											@click="togglePick(item)">
+											{{ isPicked(item.id) ? '✓' : '' }}
+										</button>
 									</article>
 								</template>
 							</VirtualMediaGrid>
@@ -655,6 +641,17 @@ function groupLabel(group: string | undefined): string {
 						@updated="review = $event"
 						@error="collaborationError = $event" />
 
+					<PublicPickBar v-if="picksActive && activeIndex === null && !compareOpen"
+						:picked-ids="pickedIds"
+						:send="pickSend"
+						:review="review"
+						:sending="pickSending"
+						:error="pickSendError"
+						:mobile="mobileViewport"
+						:preview-url="id => previewUrl({ id }, 300, 300)"
+						:submit="sendPicks"
+						@remove="id => togglePick({ id })" />
+
 					<PublicGuestDialog :open="guestDialogOpen"
 						:joining="joining"
 						:viewer="gallery.viewer"
@@ -675,6 +672,9 @@ function groupLabel(group: string | undefined): string {
 						:download-url="downloadUrl"
 						:selection-export-url="selectionExportUrl"
 						:preview-scene="staticPreview?.scene"
+						:picked-ids="picksActive ? pickedIds : null"
+						:picks-locked="picksLocked"
+						@toggle-pick="togglePick"
 						@active-change="onLightboxActive"
 						@close="closeLightbox" />
 					<PublicCompareLightTable v-if="settings.mode === 'collaboration' && compareOpen"

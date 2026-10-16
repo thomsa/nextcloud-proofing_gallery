@@ -42,8 +42,11 @@ const props = defineProps<{
 	downloadUrl(item: MediaItem): string
 	selectionExportUrl(selectionId: string, format: 'csv' | 'plain' | 'search', fields?: string[]): string
 	previewScene?: 'gallery' | 'photo' | 'slideshow' | 'metadata'
+	/** The reviewer's picked photos; null hides the Select toggle. */
+	pickedIds?: number[] | null
+	picksLocked?: boolean
 }>()
-const emit = defineEmits<{ close: []; 'active-change': [item: MediaItem] }>()
+const emit = defineEmits<{ close: []; 'active-change': [item: MediaItem]; 'toggle-pick': [item: MediaItem] }>()
 
 const activeIndex = ref(props.initialIndex)
 const activeItem = computed(() => props.mediaItems[activeIndex.value] ?? null)
@@ -394,11 +397,16 @@ function onKeydown(event: KeyboardEvent) {
 	if (target?.matches('input, textarea, select, [contenteditable="true"]')) return
 	if (event.key === 'ArrowLeft') step(-1)
 	if (event.key === 'ArrowRight') step(1)
+	pickFromKeyboard(event)
 	if (event.key === '?' || (event.key === '/' && event.shiftKey)) shortcutsOpen.value = !shortcutsOpen.value
 	if (event.key === ' ') {
 		event.preventDefault()
 		setSlideshow(!slideshow.value)
 	}
+}
+
+function pickFromKeyboard(event: KeyboardEvent) {
+	if (event.key.toLowerCase() === 'p' && props.pickedIds && !props.picksLocked && activeItem.value) emit('toggle-pick', activeItem.value)
 }
 
 function trapFocus(event: KeyboardEvent) {
@@ -461,6 +469,8 @@ async function setGuestRating(rating: number, pick = activeGuestRating.value.pic
 			:can-download="canDownloadIndividual"
 			:has-metadata="hasPublicMetadata"
 			:download-url="downloadUrl(activeItem)"
+			:picked="pickedIds && !picksLocked ? pickedIds.includes(activeItem.id) : null"
+			@pick="emit('toggle-pick', activeItem)"
 			@close="close"
 			@zoom="zoom"
 			@like="openFeedbackAndLike"
@@ -558,6 +568,9 @@ async function setGuestRating(rating: number, pick = activeGuestRating.value.pic
 					<div><dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>{{ t('proofing_gallery', 'Previous or next photograph') }}</dd></div>
 					<div><dt><kbd>{{ t('proofing_gallery', 'Space') }}</kbd></dt><dd>{{ t('proofing_gallery', 'Start or pause slideshow') }}</dd></div>
 					<div><dt><kbd>{{ t('proofing_gallery', 'Esc') }}</kbd></dt><dd>{{ t('proofing_gallery', 'Close panel or lightbox') }}</dd></div>
+					<div v-if="pickedIds">
+						<dt><kbd>P</kbd></dt><dd>{{ t('proofing_gallery', 'Select or unselect photograph') }}</dd>
+					</div>
 					<div><dt><kbd>?</kbd></dt><dd>{{ t('proofing_gallery', 'Show this help') }}</dd></div>
 				</dl>
 				<small>{{ t('proofing_gallery', 'Slideshow interval: {seconds} seconds', { seconds: settings.presentation?.slideshowInterval ?? 5 }) }}</small>

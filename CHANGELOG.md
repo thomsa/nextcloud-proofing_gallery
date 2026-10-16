@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- simplify client selections in proofing galleries: every photo has a select
+  circle and the lightbox a Select toggle (key P); picks are the selection,
+  saved per reviewer, and a floating bar shows progress, rules and due date with
+  one **Send for review** action that needs no named draft
+
 - keep square image corners on public tiles when Nextcloud or a server theme
   rounds buttons
 

@@ -5,8 +5,10 @@ import { t } from '@nextcloud/l10n'
 import {
 	addOutline,
 	chatbubbleEllipsesOutline,
+	checkmarkCircle,
 	closeOutline,
 	downloadOutline,
+	ellipseOutline,
 	ellipsisHorizontal,
 	heart,
 	heartOutline,
@@ -26,10 +28,13 @@ defineProps<{
 	canDownload: boolean
 	hasMetadata: boolean
 	downloadUrl: string
+	/** Whether the photo is in the reviewer's selection; null hides the toggle. */
+	picked?: boolean | null
 }>()
 
 const emit = defineEmits<{
 	close: []
+	pick: []
 	zoom: [direction: number]
 	like: []
 	feedback: []
@@ -62,6 +67,14 @@ const emit = defineEmits<{
 					:aria-label="t('proofing_gallery', 'Zoom in')"
 					@click="emit('zoom', 1)">
 					<IonIcon slot="icon-only" :icon="addOutline" aria-hidden="true" />
+				</IonButton>
+				<IonButton v-if="picked !== null && picked !== undefined"
+					class="lightbox-bar__pick"
+					:class="{ 'lightbox-bar__pick--active': picked }"
+					:aria-pressed="picked"
+					@click="emit('pick')">
+					<IonIcon slot="start" :icon="picked ? checkmarkCircle : ellipseOutline" aria-hidden="true" />
+					{{ picked ? t('proofing_gallery', 'Selected') : t('proofing_gallery', 'Select') }}
 				</IonButton>
 				<IonButton v-if="canLike" :aria-label="t('proofing_gallery', 'Like')" @click="emit('like')">
 					<IonIcon slot="icon-only" :icon="liked ? heart : heartOutline" aria-hidden="true" />
@@ -102,6 +115,10 @@ const emit = defineEmits<{
 ion-toolbar { --min-height: 58px; --padding-start: max(4px, env(safe-area-inset-left)); --padding-end: max(4px, env(safe-area-inset-right)); }
 
 ion-button { --color: #fff; --border-radius: 999px; width: 44px; height: 44px; margin: 0 1px; }
+
+.lightbox-bar__pick { width: auto; margin-inline-end: 6px; --padding-start: 12px; --padding-end: 14px; --background: rgb(255 255 255 / 12%); font-weight: 650; text-transform: none; }
+
+.lightbox-bar__pick--active { --background: var(--gallery-accent); --color: var(--ion-color-primary-contrast, #fff); }
 
 ion-title { padding-inline: 8px; text-align: start; }
 
