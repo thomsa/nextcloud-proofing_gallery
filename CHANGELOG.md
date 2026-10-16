@@ -2,10 +2,8 @@
 
 ## Unreleased
 
-- add a per-gallery **Browsing** setting that offers continuous scrolling as an
-  alternative to numbered pages for grid, masonry and list layouts; the
-  lightbox keeps loading ahead, photo links still open from the first item, and
-  review state follows the visible part of long galleries
+- keep square image corners on public tiles when Nextcloud or a server theme
+  rounds buttons
 
 ## 0.12.0 — 2026-10-09
 
