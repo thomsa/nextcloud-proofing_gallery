@@ -31,7 +31,7 @@ interface PublicGalleryState {
 const state = loadState<PublicGalleryState>('proofing_gallery', 'public-gallery')
 
 async function mount() {
-	// Load the coordinator and locale together; keep the server image until mount.
+	// Load the coordinator and locale together; the server's loader stays up meanwhile.
 	const [{ default: PublicApp }] = await Promise.all([
 		import('./PublicApp.vue'),
 		state.settings.publicLocale === 'auto' ? Promise.resolve() : applyPublicLocale(state.settings.publicLocale),
@@ -41,9 +41,41 @@ async function mount() {
 	document.title = state.title
 	const app = createApp(PublicApp, { gallery: state })
 	app.use(IonicVue)
-	app.mount('#proofing_gallery_public')
-	const serverPreview = document.querySelector<HTMLElement>('#proofing-gallery-server-preview')
-	serverPreview?.remove()
+	const root = document.querySelector<HTMLElement>('#proofing_gallery_public')!
+	app.mount(root)
+	await Promise.race([firstScreenReady(root), new Promise(resolve => setTimeout(resolve, 8000))])
 }
 
-mount()
+function hideLoader() {
+	const loader = document.querySelector<HTMLElement>('#proofing-gallery-loader')
+	if (!loader) return
+	loader.style.opacity = '0'
+	setTimeout(() => loader.remove(), 400)
+}
+
+/**
+ * Resolves once fonts and the images on the first screen have loaded, so the
+ * gallery appears whole instead of assembling itself in front of the guest.
+ *
+ * @param root Element the public app is mounted in.
+ */
+async function firstScreenReady(root: HTMLElement): Promise<void> {
+	let images: HTMLImageElement[] = []
+	// The grid renders its tiles after measuring itself, so give it a moment to place them.
+	for (let attempt = 0; attempt < 15 && !images.length; attempt++) {
+		await new Promise(resolve => setTimeout(resolve, 100))
+		images = [...root.querySelectorAll('img')].filter(image => {
+			const box = image.getBoundingClientRect()
+			return box.width > 0 && box.bottom > 0 && box.top < window.innerHeight
+		})
+	}
+	await Promise.all([
+		document.fonts?.ready,
+		...images.filter(image => !image.complete).map(image => new Promise(resolve => {
+			image.addEventListener('load', resolve, { once: true })
+			image.addEventListener('error', resolve, { once: true })
+		})),
+	])
+}
+
+mount().finally(hideLoader)
