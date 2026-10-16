@@ -23,7 +23,7 @@ export function galleryHasLogo(presentation: GalleryPresentation): boolean {
 }
 
 /**
- * Query for the public hero asset; a full-screen cover shows the whole photo, so it must not arrive pre-cropped to a banner.
+ * Query for the public hero asset; a full-screen cover must not arrive pre-cropped to a banner, or a portrait photo ends up heavily zoomed in on a phone.
  *
  * @param presentation Gallery presentation settings.
  */

@@ -46,13 +46,8 @@ onBeforeUnmount(() => observer?.disconnect())
 		<section v-if="overlay"
 			class="gallery-opener__hero"
 			:class="[`gallery-opener__hero--${heroSize}`, { 'gallery-opener__hero--backdrop': !heroUrl }]">
-			<img v-if="heroUrl && fullscreen"
-				class="gallery-opener__hero-blur"
-				:src="heroUrl"
-				alt="">
 			<img v-if="heroUrl"
 				class="gallery-opener__hero-image"
-				:class="{ 'gallery-opener__hero-image--whole': fullscreen }"
 				:src="heroUrl"
 				alt=""
 				:style="{ objectPosition: `${settings.presentation.heroFocusX}% ${settings.presentation.heroFocusY}%` }">
@@ -164,11 +159,6 @@ onBeforeUnmount(() => observer?.disconnect())
 .gallery-opener__hero--backdrop { background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--gallery-accent) 42%, #121212), #0d0d0d 78%); }
 
 .gallery-opener__hero-image { position: absolute; z-index: -2; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-
-/* The full-screen cover shows the whole photo; a blurred copy of it fills the space around. */
-.gallery-opener__hero-image--whole { object-fit: contain; object-position: center; }
-
-.gallery-opener__hero-blur { position: absolute; z-index: -3; inset: -40px; width: calc(100% + 80px); height: calc(100% + 80px); object-fit: cover; filter: blur(32px) brightness(.7); }
 
 .gallery-opener__hero::after { position: absolute; z-index: -1; inset: 0; background: linear-gradient(rgb(0 0 0 / 42%), rgb(0 0 0 / 52%)); content: ''; }
 
