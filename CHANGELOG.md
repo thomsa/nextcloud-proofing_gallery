@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- keep square image corners on public tiles when Nextcloud or a server theme
+  rounds buttons
+
 ## 0.12.0 — 2026-10-09
 
 - preserve separately configured primary-link download, upload, export, metadata
