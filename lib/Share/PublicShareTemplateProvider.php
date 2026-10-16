@@ -91,10 +91,7 @@ final class PublicShareTemplateProvider implements IPublicShareTemplateProvider 
 			$response->addHeader('Link', sprintf('<%s>; rel=preload; as=image', $firstPaintImage));
 		}
 		$response->setHeaderTitle($gallery->getTitle());
-		$response->setParams([
-			'pageTitle' => $gallery->getTitle(),
-			'lcpPreviewUrl' => $firstPaintImage,
-		]);
+		$response->setParams(['pageTitle' => $gallery->getTitle()]);
 		return $response;
 	}
 
