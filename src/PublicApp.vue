@@ -10,7 +10,7 @@ import { usePublicGridGeometry } from './composables/usePublicGridGeometry.ts'
 import { publicGalleryThemeStyle } from './domain/publicGalleryThemeStyle.ts'
 import { PUBLIC_GALLERY_PAGE_SIZE } from './domain/publicGalleryNavigation.ts'
 import { continuationStorageKey, loadPublicGalleryContinuation, safelyStore } from './domain/publicGalleryPreferences.ts'
-import { galleryHasLogo, galleryTitleMode } from './domain/galleryTitlePresentation.ts'
+import { galleryHasLogo, galleryTitleMode, publicHeroQuery } from './domain/galleryTitlePresentation.ts'
 import { downloadQuery } from './domain/publicDownloadOptions.ts'
 import type { PublicDownloadPreset } from './domain/publicDownloadOptions.ts'
 import type { MediaItem, PublicGallery, PublicGalleryPage } from './publicTypes.ts'
@@ -315,7 +315,7 @@ function scrollToGrid() {
 }
 
 function assetUrl(kind: 'logo' | 'hero'): string {
-	return publicEndpoint(`asset/${kind}${kind === 'hero' ? `?v=${settings.value.presentation.heroFileId}` : ''}`)
+	return publicEndpoint(`asset/${kind}${kind === 'hero' ? publicHeroQuery(settings.value.presentation) : ''}`)
 }
 
 const downloadUrl = (item: MediaItem) => publicEndpoint(`media/${item.id}/download?${downloadQuery(downloadPreset.value, downloadWatermark.value)}`)

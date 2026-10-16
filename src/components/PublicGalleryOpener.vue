@@ -46,8 +46,13 @@ onBeforeUnmount(() => observer?.disconnect())
 		<section v-if="overlay"
 			class="gallery-opener__hero"
 			:class="[`gallery-opener__hero--${heroSize}`, { 'gallery-opener__hero--backdrop': !heroUrl }]">
+			<img v-if="heroUrl && fullscreen"
+				class="gallery-opener__hero-blur"
+				:src="heroUrl"
+				alt="">
 			<img v-if="heroUrl"
 				class="gallery-opener__hero-image"
+				:class="{ 'gallery-opener__hero-image--whole': fullscreen }"
 				:src="heroUrl"
 				alt=""
 				:style="{ objectPosition: `${settings.presentation.heroFocusX}% ${settings.presentation.heroFocusY}%` }">
@@ -57,28 +62,32 @@ onBeforeUnmount(() => observer?.disconnect())
 					:class="[`gallery-opener__title--${settings.presentation.fontPreset}`, `gallery-opener__title--${settings.presentation.titleSize}`]">
 					{{ title }}
 				</h1>
-				<p v-if="settings.presentation.showMediaCount" class="gallery-opener__overlay-count">
+				<p v-if="settings.presentation.showMediaCount && !fullscreen" class="gallery-opener__overlay-count">
 					{{ totalLabel ?? n('proofing_gallery', '%n photo', '%n photos', total) }}
 				</p>
 				<p v-if="settings.presentation.welcomeMessage" class="gallery-opener__overlay-welcome">
 					{{ settings.presentation.welcomeMessage }}
 				</p>
 			</div>
-			<button v-if="fullscreen"
-				type="button"
-				class="gallery-opener__scroll"
-				@click="emit('scroll-down')">
-				<span>{{ t('proofing_gallery', 'Scroll down') }}</span>
-				<svg viewBox="0 0 24 24"
-					width="18"
-					height="18"
-					aria-hidden="true"><path d="M12 4v15m0 0-6-6m6 6 6-6"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round" /></svg>
-			</button>
+			<div v-if="fullscreen" class="gallery-opener__bottom">
+				<p v-if="settings.presentation.showMediaCount" class="gallery-opener__overlay-count">
+					{{ totalLabel ?? n('proofing_gallery', '%n photo', '%n photos', total) }}
+				</p>
+				<button type="button"
+					class="gallery-opener__scroll"
+					@click="emit('scroll-down')">
+					<span>{{ t('proofing_gallery', 'Scroll down') }}</span>
+					<svg viewBox="0 0 24 24"
+						width="18"
+						height="18"
+						aria-hidden="true"><path d="M12 4v15m0 0-6-6m6 6 6-6"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round" /></svg>
+				</button>
+			</div>
 			<span v-if="fullscreen" ref="heroEnd" class="gallery-opener__hero-end" />
 		</section>
 		<template v-else>
@@ -156,6 +165,11 @@ onBeforeUnmount(() => observer?.disconnect())
 
 .gallery-opener__hero-image { position: absolute; z-index: -2; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 
+/* The full-screen cover shows the whole photo; a blurred copy of it fills the space around. */
+.gallery-opener__hero-image--whole { object-fit: contain; object-position: center; }
+
+.gallery-opener__hero-blur { position: absolute; z-index: -3; inset: -40px; width: calc(100% + 80px); height: calc(100% + 80px); object-fit: cover; filter: blur(32px) brightness(.7); }
+
 .gallery-opener__hero::after { position: absolute; z-index: -1; inset: 0; background: linear-gradient(rgb(0 0 0 / 42%), rgb(0 0 0 / 52%)); content: ''; }
 
 .gallery-opener__overlay { display: grid; justify-items: center; gap: 10px; max-width: min(90vw, 900px); padding: 72px 24px; text-align: center; text-shadow: 0 1px 12px rgb(0 0 0 / 35%); }
@@ -168,9 +182,10 @@ onBeforeUnmount(() => observer?.disconnect())
 
 .gallery-opener__overlay-welcome { max-width: 60ch; margin: 4px 0 0; color: rgb(255 255 255 / 92%); font-size: 16px; line-height: 1.5; white-space: pre-line; }
 
+/* Photo count and Scroll down button, pinned to the bottom of the full-screen cover. */
+.gallery-opener__bottom { position: absolute; inset: auto 0 max(28px, calc(env(safe-area-inset-bottom) + 20px)); display: grid; justify-items: center; gap: 12px; text-shadow: 0 1px 12px rgb(0 0 0 / 35%); }
+
 .gallery-opener__scroll {
-	position: absolute;
-	inset: auto 50% max(28px, calc(env(safe-area-inset-bottom) + 20px)) auto;
 	display: inline-flex;
 	align-items: center;
 	gap: 8px;
@@ -183,7 +198,6 @@ onBeforeUnmount(() => observer?.disconnect())
 	font: inherit;
 	font-size: 14px;
 	font-weight: 600;
-	transform: translateX(50%);
 	cursor: pointer;
 	backdrop-filter: blur(4px);
 }

@@ -125,7 +125,8 @@ function previewEndpoint(gallery: PublicGallery, path: string): string {
 		)
 	}
 	if (path.split('?')[0] === 'asset/hero' && gallery.settings.presentation.heroFileId) {
-		return ownerPreviewUrl(gallery.id, gallery.settings.presentation.heroFileId, 1200, 800, 'cover')
+		const fit = new URLSearchParams(path.split('?')[1] ?? '').get('mode') === 'fit'
+		return ownerPreviewUrl(gallery.id, gallery.settings.presentation.heroFileId, fit ? 2400 : 1200, fit ? 2400 : 800, fit ? 'fit' : 'cover')
 	}
 	if (path === 'asset/logo') return previewLogoEndpoint(gallery)
 	return ''
